@@ -8,8 +8,36 @@ import (
 
 	"github.com/iancoleman/orderedmap"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	host "github.com/cosmos/ibc-go/v7/modules/core/24-host"
 )
+
+type SwapMsgType string
+
+type SwapRequest struct {
+	PoolID   string `json:"pool_id"`
+	AssetIn  string `json:"asset_in"`
+	AssetOut string `json:"asset_out"`
+}
+
+type SwapRoute struct {
+	Requests       []SwapRequest `json:"requests"`
+	MinimumReceive *uint64       `json:"minimum_receive,omitempty"`
+}
+
+type ICS101SwapMsg struct {
+	SwapType         SwapMsgType `json:"swapType"`
+	Sender           string      `json:"sender"`
+	PoolID           string      `json:"poolId"`
+	TokenIn          sdk.Coin    `json:"tokenIn"`
+	TokenOut         sdk.Coin    `json:"tokenOut"`
+	Slippage         uint64      `json:"slippage"`
+	Recipient        string      `json:"recipient"`
+	TimeoutHeight    uint64      `json:"timeoutHeight"`
+	TimeoutTimestamp uint64      `json:"timeoutTimestamp"`
+	Route            *SwapRoute  `json:"route,omitempty"`
+	Memo             string      `json:"memo"`
+}
 
 type PacketMetadata struct {
 	Forward *ForwardMetadata `json:"forward"`

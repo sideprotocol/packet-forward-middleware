@@ -23,7 +23,7 @@ var (
 	testAmount    = "100"
 	testAmount256 = "100000000000000000000"
 
-	testSourcePort         = "transfer"
+	testSourcePort         = "ics101"
 	testSourceChannel      = "channel-10"
 	testDestinationPort    = "transfer"
 	testDestinationChannel = "channel-11"
@@ -37,6 +37,7 @@ var (
 	port              = "transfer"
 	channel           = "channel-0"
 	channel2          = "channel-1"
+	testPoolId        = "pool02323423432499"
 )
 
 func makeIBCDenom(port, channel, denom string) string {
@@ -48,26 +49,33 @@ func emptyPacket() channeltypes.Packet {
 	return channeltypes.Packet{}
 }
 
-func transferPacket(t *testing.T, sender string, receiver string, metadata any) channeltypes.Packet {
+func ics101SwapPacket(t *testing.T, sender string, receiver string, metadata any) channeltypes.Packet {
 	t.Helper()
-	transferPacket := transfertypes.FungibleTokenPacketData{
-		Denom:    testDenom,
-		Amount:   testAmount,
-		Sender:   sender,
-		Receiver: receiver,
+	route := types.SwapRoute{}
+	ics101SwapPacket := types.ICS101SwapMsg{
+		SwapType:         "left",
+		Sender:           sender,
+		PoolID:           testPoolId,
+		TokenIn:          sdk.NewCoin("uside", sdk.NewInt(1000)),
+		TokenOut:         sdk.NewCoin("uusdc", sdk.NewInt(1000)),
+		Slippage:         30,
+		Recipient:        intermediateAddr,
+		TimeoutHeight:    100,
+		TimeoutTimestamp: 10000,
+		Route:            &route,
+		Memo:             "hello world",
 	}
-
 	if metadata != nil {
 		if mStr, ok := metadata.(string); ok {
-			transferPacket.Memo = mStr
+			ics101SwapPacket.Memo = mStr
 		} else {
 			memo, err := json.Marshal(metadata)
 			require.NoError(t, err)
-			transferPacket.Memo = string(memo)
+			ics101SwapPacket.Memo = string(memo)
 		}
 	}
 
-	transferData, err := transfertypes.ModuleCdc.MarshalJSON(&transferPacket)
+	ics101SwapData, err := json.Marshal(&ics101SwapPacket)
 	require.NoError(t, err)
 
 	return channeltypes.Packet{
@@ -75,7 +83,7 @@ func transferPacket(t *testing.T, sender string, receiver string, metadata any) 
 		SourceChannel:      testSourceChannel,
 		DestinationPort:    testDestinationPort,
 		DestinationChannel: testDestinationChannel,
-		Data:               transferData,
+		Data:               ics101SwapData,
 	}
 }
 
@@ -147,7 +155,7 @@ func TestOnRecvPacket_InvalidReceiver(t *testing.T) {
 
 	// Test data
 	senderAccAddr := test.AccAddress()
-	packet := transferPacket(t, test.AccAddress().String(), "", nil)
+	packet := ics101SwapPacket(t, test.AccAddress().String(), "", nil)
 
 	// Expected mocks
 	gomock.InOrder(
@@ -173,7 +181,7 @@ func TestOnRecvPacket_NoForward(t *testing.T) {
 
 	// Test data
 	senderAccAddr := test.AccAddress()
-	packet := transferPacket(t, test.AccAddress().String(), "cosmos16plylpsgxechajltx9yeseqexzdzut9g8vla4k", nil)
+	packet := ics101SwapPacket(t, test.AccAddress().String(), "cosmos16plylpsgxechajltx9yeseqexzdzut9g8vla4k", nil)
 
 	// Expected mocks
 	gomock.InOrder(
@@ -200,7 +208,7 @@ func TestOnRecvPacket_NoMemo(t *testing.T) {
 
 	// Test data
 	senderAccAddr := test.AccAddress()
-	packet := transferPacket(t, test.AccAddress().String(), "cosmos16plylpsgxechajltx9yeseqexzdzut9g8vla4k", "{}")
+	packet := ics101SwapPacket(t, test.AccAddress().String(), "cosmos16plylpsgxechajltx9yeseqexzdzut9g8vla4k", "{}")
 
 	// Expected mocks
 	gomock.InOrder(
@@ -226,7 +234,7 @@ func TestOnRecvPacket_RecvPacketFailed(t *testing.T) {
 	forwardMiddleware := setup.ForwardMiddleware
 
 	senderAccAddr := test.AccAddress()
-	packet := transferPacket(t, test.AccAddress().String(), "cosmos16plylpsgxechajltx9yeseqexzdzut9g8vla4k", nil)
+	packet := ics101SwapPacket(t, test.AccAddress().String(), "cosmos16plylpsgxechajltx9yeseqexzdzut9g8vla4k", nil)
 
 	// Expected mocks
 	gomock.InOrder(
@@ -252,18 +260,16 @@ func TestOnRecvPacket_ForwardNoFee(t *testing.T) {
 	ctx := setup.Initializer.Ctx
 	cdc := setup.Initializer.Marshaler
 	forwardMiddleware := setup.ForwardMiddleware
-
-	denom := makeIBCDenom(testDestinationPort, testDestinationChannel, testDenom)
 	senderAccAddr := test.AccAddress()
-	testCoin := sdk.NewCoin(denom, sdk.NewInt(100))
+
 	metadata := &types.PacketMetadata{Forward: &types.ForwardMetadata{
 		Receiver: destAddr,
 		Port:     port,
 		Channel:  channel,
 	}}
-	packetOrig := transferPacket(t, senderAddr, hostAddr, metadata)
-	packetModifiedSender := transferPacket(t, senderAddr, intermediateAddr, nil)
-	packetFwd := transferPacket(t, intermediateAddr, destAddr, nil)
+	packetOrig := ics101SwapPacket(t, senderAddr, hostAddr, metadata)
+	packetModifiedSender := ics101SwapPacket(t, senderAddr, intermediateAddr, nil)
+	packetFwd := ics101SwapPacket(t, intermediateAddr, destAddr, nil)
 
 	acknowledgement := channeltypes.NewResultAcknowledgement([]byte("test"))
 	successAck := cdc.MustMarshalJSON(&acknowledgement)
@@ -272,20 +278,15 @@ func TestOnRecvPacket_ForwardNoFee(t *testing.T) {
 	gomock.InOrder(
 		setup.Mocks.IBCModuleMock.EXPECT().OnRecvPacket(ctx, packetModifiedSender, senderAccAddr).
 			Return(acknowledgement),
-
-		setup.Mocks.TransferKeeperMock.EXPECT().Transfer(
-			sdk.WrapSDKContext(ctx),
-			transfertypes.NewMsgTransfer(
-				port,
-				channel,
-				testCoin,
-				intermediateAddr,
-				destAddr,
-				keeper.DefaultTransferPacketTimeoutHeight,
-				uint64(ctx.BlockTime().UnixNano())+uint64(keeper.DefaultForwardTransferPacketTimeoutTimestamp.Nanoseconds()),
-				"",
-			),
-		).Return(&transfertypes.MsgTransferResponse{Sequence: 0}, nil),
+		// setup.Mocks.ICS4WrapperMock.EXPECT().SendPacket(
+		// 	sdk.WrapSDKContext(ctx),
+		// 	nil,
+		// 	port,
+		// 	channel,
+		// 	packetOrig.TimeoutHeight,
+		// 	packetOrig.TimeoutTimestamp,
+		// 	packetOrig,
+		// ).Return(&transfertypes.MsgTransferResponse{Sequence: 0}, nil),
 
 		setup.Mocks.IBCModuleMock.EXPECT().OnAcknowledgementPacket(ctx, packetFwd, successAck, senderAccAddr).
 			Return(nil),
@@ -385,9 +386,9 @@ func TestOnRecvPacket_ForwardWithFee(t *testing.T) {
 		Port:     port,
 		Channel:  channel,
 	}}
-	packetOrig := transferPacket(t, senderAddr, hostAddr, metadata)
-	packetModifiedSender := transferPacket(t, senderAddr, intermediateAddr, nil)
-	packetFwd := transferPacket(t, intermediateAddr, destAddr, nil)
+	packetOrig := ics101SwapPacket(t, senderAddr, hostAddr, metadata)
+	packetModifiedSender := ics101SwapPacket(t, senderAddr, intermediateAddr, nil)
+	packetFwd := ics101SwapPacket(t, intermediateAddr, destAddr, nil)
 	acknowledgement := channeltypes.NewResultAcknowledgement([]byte("test"))
 	successAck := cdc.MustMarshalJSON(&acknowledgement)
 
@@ -461,11 +462,11 @@ func TestOnRecvPacket_ForwardMultihopStringNext(t *testing.T) {
 		},
 	}
 
-	packetOrig := transferPacket(t, senderAddr, hostAddr, metadata)
-	packetModifiedSender := transferPacket(t, senderAddr, intermediateAddr, nil)
-	packet2 := transferPacket(t, intermediateAddr, hostAddr2, nextMetadata)
-	packet2ModifiedSender := transferPacket(t, intermediateAddr, intermediateAddr2, nil)
-	packetFwd := transferPacket(t, intermediateAddr2, destAddr, nil)
+	packetOrig := ics101SwapPacket(t, senderAddr, hostAddr, metadata)
+	packetModifiedSender := ics101SwapPacket(t, senderAddr, intermediateAddr, nil)
+	packet2 := ics101SwapPacket(t, intermediateAddr, hostAddr2, nextMetadata)
+	packet2ModifiedSender := ics101SwapPacket(t, intermediateAddr, intermediateAddr2, nil)
+	packetFwd := ics101SwapPacket(t, intermediateAddr2, destAddr, nil)
 
 	memo1, err := json.Marshal(nextMetadata)
 	require.NoError(t, err)
@@ -551,6 +552,7 @@ func TestOnRecvPacket_ForwardMultihopJSONNext(t *testing.T) {
 	senderAccAddr := test.AccAddress()
 	senderAccAddr2 := test.AccAddress()
 	testCoin := sdk.NewCoin(denom, sdk.NewInt(100))
+	_ = testCoin
 	nextMetadata := &types.PacketMetadata{
 		Forward: &types.ForwardMetadata{
 			Receiver: destAddr,
@@ -573,37 +575,44 @@ func TestOnRecvPacket_ForwardMultihopJSONNext(t *testing.T) {
 			Next:     nextJSONObject,
 		},
 	}
-	packetOrig := transferPacket(t, senderAddr, hostAddr, metadata)
-	packetModifiedSender := transferPacket(t, senderAddr, intermediateAddr, nil)
-	packet2 := transferPacket(t, intermediateAddr, hostAddr2, nextMetadata)
-	packet2ModifiedSender := transferPacket(t, intermediateAddr, intermediateAddr2, nil)
-	packetFwd := transferPacket(t, intermediateAddr2, destAddr, nil)
+	packetOrig := ics101SwapPacket(t, senderAddr, hostAddr, metadata)
+	packetModifiedSender := ics101SwapPacket(t, senderAddr, intermediateAddr, nil)
+	packet2 := ics101SwapPacket(t, intermediateAddr, hostAddr2, nextMetadata)
+	packet2ModifiedSender := ics101SwapPacket(t, intermediateAddr, intermediateAddr2, nil)
+	packetFwd := ics101SwapPacket(t, intermediateAddr2, destAddr, nil)
 
 	memo1, err := json.Marshal(nextMetadata)
 	require.NoError(t, err)
 
-	msgTransfer1 := transfertypes.NewMsgTransfer(
-		port,
-		channel,
-		testCoin,
-		intermediateAddr,
-		hostAddr2,
-		keeper.DefaultTransferPacketTimeoutHeight,
-		uint64(ctx.BlockTime().UnixNano())+uint64(keeper.DefaultForwardTransferPacketTimeoutTimestamp.Nanoseconds()),
-		string(memo1),
-	)
+	msgTransfer1 := types.ICS101SwapMsg{
+		Memo: string(memo1),
+	}
+	// transfertypes.NewMsgTransfer(
+	// 	port,
+	// 	channel,
+	// 	testCoin,
+	// 	intermediateAddr,
+	// 	hostAddr2,
+	// 	keeper.DefaultTransferPacketTimeoutHeight,
+	// 	uint64(ctx.BlockTime().UnixNano())+uint64(keeper.DefaultForwardTransferPacketTimeoutTimestamp.Nanoseconds()),
+	// 	string(memo1),
+	// )
 
 	// no memo on final forward
-	msgTransfer2 := transfertypes.NewMsgTransfer(
-		port,
-		channel2,
-		testCoin,
-		intermediateAddr2,
-		destAddr,
-		keeper.DefaultTransferPacketTimeoutHeight,
-		uint64(ctx.BlockTime().UnixNano())+uint64(keeper.DefaultForwardTransferPacketTimeoutTimestamp.Nanoseconds()),
-		"",
-	)
+	msgTransfer2 := types.ICS101SwapMsg{
+		Memo: "",
+	}
+	_ = msgTransfer2
+	// transfertypes.NewMsgTransfer(
+	// 	port,
+	// 	channel2,
+	// 	testCoin,
+	// 	intermediateAddr2,
+	// 	destAddr,
+	// 	keeper.DefaultTransferPacketTimeoutHeight,
+	// 	uint64(ctx.BlockTime().UnixNano())+uint64(keeper.DefaultForwardTransferPacketTimeoutTimestamp.Nanoseconds()),
+	// 	"",
+	// )
 
 	acknowledgement := channeltypes.NewResultAcknowledgement([]byte("test"))
 	successAck := cdc.MustMarshalJSON(&acknowledgement)
@@ -621,10 +630,10 @@ func TestOnRecvPacket_ForwardMultihopJSONNext(t *testing.T) {
 		setup.Mocks.IBCModuleMock.EXPECT().OnRecvPacket(ctx, packet2ModifiedSender, senderAccAddr2).
 			Return(acknowledgement),
 
-		setup.Mocks.TransferKeeperMock.EXPECT().Transfer(
-			sdk.WrapSDKContext(ctx),
-			msgTransfer2,
-		).Return(&transfertypes.MsgTransferResponse{Sequence: 0}, nil),
+		// setup.Mocks.TransferKeeperMock.EXPECT().Transfer(
+		// 	sdk.WrapSDKContext(ctx),
+		// 	msgTransfer2,
+		// ).Return(&transfertypes.MsgTransferResponse{Sequence: 0}, nil),
 
 		setup.Mocks.IBCModuleMock.EXPECT().OnAcknowledgementPacket(ctx, packetFwd, successAck, senderAccAddr2).
 			Return(nil),

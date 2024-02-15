@@ -14,7 +14,7 @@ func (k Keeper) InitGenesis(ctx sdk.Context, state types.GenesisState) {
 
 	// Initialize store refund path for forwarded packets in genesis state that have not yet been acked.
 	store := ctx.KVStore(k.storeKey)
-	for key, value := range state.InFlightPackets {
+	for key, value := range state.MultiHopsPackets {
 		key := key
 		value := value
 		bz := k.cdc.MustMarshal(&value)
@@ -26,13 +26,13 @@ func (k Keeper) InitGenesis(ctx sdk.Context, state types.GenesisState) {
 func (k Keeper) ExportGenesis(ctx sdk.Context) *types.GenesisState {
 	store := ctx.KVStore(k.storeKey)
 
-	inFlightPackets := make(map[string]types.InFlightPacket)
+	multiHopsPacket := make(map[string]types.MultiHopsPacket)
 
 	itr := store.Iterator(nil, nil)
 	for ; itr.Valid(); itr.Next() {
-		var inFlightPacket types.InFlightPacket
+		var inFlightPacket types.MultiHopsPacket
 		k.cdc.MustUnmarshal(itr.Value(), &inFlightPacket)
-		inFlightPackets[string(itr.Key())] = inFlightPacket
+		multiHopsPacket[string(itr.Key())] = inFlightPacket
 	}
-	return &types.GenesisState{Params: k.GetParams(ctx), InFlightPackets: inFlightPackets}
+	return &types.GenesisState{Params: k.GetParams(ctx), MultiHopsPackets: multiHopsPacket}
 }
