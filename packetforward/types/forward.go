@@ -8,47 +8,18 @@ import (
 
 	"github.com/iancoleman/orderedmap"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	host "github.com/cosmos/ibc-go/v7/modules/core/24-host"
 )
-
-type SwapMsgType string
-
-type SwapRequest struct {
-	PoolID   string `json:"pool_id"`
-	AssetIn  string `json:"asset_in"`
-	AssetOut string `json:"asset_out"`
-}
-
-type SwapRoute struct {
-	Requests       []SwapRequest `json:"requests"`
-	MinimumReceive *uint64       `json:"minimum_receive,omitempty"`
-}
-
-type ICS101SwapMsg struct {
-	SwapType         SwapMsgType `json:"swapType"`
-	Sender           string      `json:"sender"`
-	PoolID           string      `json:"poolId"`
-	TokenIn          sdk.Coin    `json:"tokenIn"`
-	TokenOut         sdk.Coin    `json:"tokenOut"`
-	Slippage         uint64      `json:"slippage"`
-	Recipient        string      `json:"recipient"`
-	TimeoutHeight    uint64      `json:"timeoutHeight"`
-	TimeoutTimestamp uint64      `json:"timeoutTimestamp"`
-	Route            *SwapRoute  `json:"route,omitempty"`
-	Memo             string      `json:"memo"`
-}
 
 type PacketMetadata struct {
 	Forward *ForwardMetadata `json:"forward"`
 }
 
 type ForwardMetadata struct {
-	Receiver string   `json:"receiver,omitempty"`
-	Port     string   `json:"port,omitempty"`
-	Channel  string   `json:"channel,omitempty"`
-	Timeout  Duration `json:"timeout,omitempty"`
-	Retries  *uint8   `json:"retries,omitempty"`
+	Port    string   `json:"port,omitempty"`
+	Channel string   `json:"channel,omitempty"`
+	Timeout Duration `json:"timeout,omitempty"`
+	Retries *uint8   `json:"retries,omitempty"`
 
 	// Using JSONObject so that objects for next property will not be mutated by golang's lexicographic key sort on map keys during Marshal.
 	// Supports primitives for Unmarshal/Marshal so that an escaped JSON-marshaled string is also valid.
@@ -58,9 +29,6 @@ type ForwardMetadata struct {
 type Duration time.Duration
 
 func (m *ForwardMetadata) Validate() error {
-	if m.Receiver == "" {
-		return fmt.Errorf("failed to validate metadata. receiver cannot be empty")
-	}
 	if err := host.PortIdentifierValidator(m.Port); err != nil {
 		return fmt.Errorf("failed to validate metadata: %w", err)
 	}

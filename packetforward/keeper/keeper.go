@@ -97,7 +97,7 @@ func (k *Keeper) Logger(ctx sdk.Context) log.Logger {
 func (k *Keeper) WriteAcknowledgementForForwardedPacket(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
-	data types.ICS101SwapMsg,
+	data types.InterchainSwapPacketData,
 	multihopsPacket *types.MultiHopsPacket,
 	ack channeltypes.Acknowledgement,
 ) error {
@@ -143,14 +143,14 @@ func (k *Keeper) ForwardPacket(
 	ctx sdk.Context,
 	multihopsPacket *types.MultiHopsPacket,
 	srcPacket channeltypes.Packet,
-	data types.ICS101SwapMsg,
+	data types.InterchainSwapPacketData,
 	metadata *types.ForwardMetadata,
 	maxRetries uint8,
 	timeout time.Duration,
 	labels []metrics.Label,
 ) error {
 	var err error
-	memo := ""
+	memo := []byte("")
 	// set memo for next transfer with next from this transfer.
 	if metadata.Next != nil {
 		memoBz, err := json.Marshal(metadata.Next)
@@ -160,7 +160,7 @@ func (k *Keeper) ForwardPacket(
 			)
 			return errorsmod.Wrapf(sdkerrors.ErrJSONMarshal, err.Error())
 		}
-		memo = string(memoBz)
+		memo = memoBz
 	}
 
 	_, chanCap, err := k.channelKeeper.LookupModuleByChannel(ctx, metadata.Port, metadata.Channel)
@@ -179,13 +179,11 @@ func (k *Keeper) ForwardPacket(
 
 	k.Logger(ctx).Debug("packetForwardMiddleware ForwardTransferPacket",
 		"port", metadata.Port, "channel", metadata.Channel,
-		"receiver", metadata.Receiver,
 	)
 
 	if err != nil {
 		k.Logger(ctx).Error("packetForwardMiddleware ForwardTransferPacket error",
 			"port", metadata.Port, "channel", metadata.Channel,
-			"receiver", metadata.Receiver,
 			"error", err,
 		)
 		return errorsmod.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
@@ -258,7 +256,7 @@ func (k *Keeper) TimeoutShouldRetry(
 func (k *Keeper) RetryTimeout(
 	ctx sdk.Context,
 	channel, port string,
-	data types.ICS101SwapMsg,
+	data types.InterchainSwapPacketData,
 	multihopsPacket *types.MultiHopsPacket,
 ) error {
 	// send transfer again
@@ -267,7 +265,7 @@ func (k *Keeper) RetryTimeout(
 		Port:    port,
 	}
 
-	if data.Memo != "" {
+	if data.Memo != nil {
 		metadata.Next = &types.JSONObject{}
 		if err := json.Unmarshal([]byte(data.Memo), metadata.Next); err != nil {
 			return fmt.Errorf("error unmarshaling memo json: %w", err)

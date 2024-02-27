@@ -167,7 +167,7 @@ func (im IBCMiddleware) OnRecvPacket(
 	relayer sdk.AccAddress,
 ) ibcexported.Acknowledgement {
 	logger := im.keeper.Logger(ctx)
-	var data types.ICS101SwapMsg
+	var data types.InterchainSwapPacketData
 	if err := json.Unmarshal(packet.GetData(), &data); err != nil {
 		logger.Debug(fmt.Sprintf("packetForwardMiddleware OnRecvPacket payload is not a FungibleTokenPacketData: %s", err.Error()))
 		return im.app.OnRecvPacket(ctx, packet, relayer)
@@ -273,7 +273,7 @@ func (im IBCMiddleware) OnAcknowledgementPacket(
 	acknowledgement []byte,
 	relayer sdk.AccAddress,
 ) error {
-	var data types.ICS101SwapMsg
+	var data types.InterchainSwapPacketData
 	if err := json.Unmarshal(packet.GetData(), &data); err != nil {
 		im.keeper.Logger(ctx).Error("packetForwardMiddleware error parsing packet data from ack packet",
 			"sequence", packet.Sequence,
@@ -306,7 +306,7 @@ func (im IBCMiddleware) OnAcknowledgementPacket(
 
 // OnTimeoutPacket implements the IBCModule interface.
 func (im IBCMiddleware) OnTimeoutPacket(ctx sdk.Context, packet channeltypes.Packet, relayer sdk.AccAddress) error {
-	var data types.ICS101SwapMsg
+	var data types.InterchainSwapPacketData
 	if err := json.Unmarshal(packet.GetData(), &data); err != nil {
 		im.keeper.Logger(ctx).Error("packetForwardMiddleware error parsing packet data from timeout packet",
 			"sequence", packet.Sequence,
