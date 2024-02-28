@@ -169,7 +169,7 @@ func (im IBCMiddleware) OnRecvPacket(
 ) ibcexported.Acknowledgement {
 	logger := im.keeper.Logger(ctx)
 	var data types.InterchainSwapPacketData
-	if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
+	if err := types.ModuleCdc.Unmarshal(packet.GetData(), &data); err != nil {
 		logger.Debug(fmt.Sprintf("packetForwardMiddleware OnRecvPacket payload is not a FungibleTokenPacketData: %s", err.Error()))
 		return newErrorAcknowledgement(fmt.Errorf("error decoding memo from base64: %w", err))
 		//return im.app.OnRecvPacket(ctx, packet, relayer)
