@@ -194,7 +194,8 @@ func (im IBCMiddleware) OnRecvPacket(
 	if err != nil || d["forward"] == nil {
 		// not a packet that should be forwarded
 		logger.Debug("packetForwardMiddleware OnRecvPacket forward metadata does not exist")
-		return im.app.OnRecvPacket(ctx, packet, relayer)
+		return newErrorAcknowledgement(fmt.Errorf("error decoding memo from base64: %w", err))
+		//return im.app.OnRecvPacket(ctx, packet, relayer)
 	}
 	m := &types.PacketMetadata{}
 	err = json.Unmarshal([]byte(data.Memo), m)
