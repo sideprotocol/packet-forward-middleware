@@ -61,7 +61,7 @@ func interchainSwapMsg(t *testing.T, sender string, receiver string, metadata an
 	require.NoError(t, err)
 
 	interchainSwapPacket := types.InterchainSwapPacketData{
-		Type:        types.LeftSwap,
+		Type:        types.InterchainMessageType_LeftSwap,
 		Data:        []byte("test"),
 		StateChange: nil,
 		Memo:        rawMemo,

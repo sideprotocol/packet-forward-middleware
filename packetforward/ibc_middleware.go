@@ -1,6 +1,7 @@
 package packetforward
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -168,7 +169,7 @@ func (im IBCMiddleware) OnRecvPacket(
 ) ibcexported.Acknowledgement {
 	logger := im.keeper.Logger(ctx)
 	var data types.InterchainSwapPacketData
-	if err := json.Unmarshal(packet.GetData(), &data); err != nil {
+	if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
 		logger.Debug(fmt.Sprintf("packetForwardMiddleware OnRecvPacket payload is not a FungibleTokenPacketData: %s", err.Error()))
 		return im.app.OnRecvPacket(ctx, packet, relayer)
 	}
@@ -180,8 +181,15 @@ func (im IBCMiddleware) OnRecvPacket(
 		"memo", data.Memo,
 	)
 
+	memoBytes, err := base64.StdEncoding.DecodeString(string(data.Memo))
+	if err != nil {
+		// handle error: invalid base64 string
+		logger.Error("error decoding memo from base64", "error", err)
+		return newErrorAcknowledgement(fmt.Errorf("error decoding memo from base64: %w", err))
+	}
+
 	d := make(map[string]interface{})
-	err := json.Unmarshal([]byte(data.Memo), &d)
+	err = json.Unmarshal([]byte(memoBytes), &d)
 	if err != nil || d["forward"] == nil {
 		// not a packet that should be forwarded
 		logger.Debug("packetForwardMiddleware OnRecvPacket forward metadata does not exist")
