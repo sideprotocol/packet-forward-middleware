@@ -171,42 +171,37 @@ func (im IBCMiddleware) OnRecvPacket(
 	logger := im.keeper.Logger(ctx)
 	var data types.InterchainSwapPacketData
 	if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
-		logger.Debug(fmt.Sprintf("packetForwardMiddleware OnRecvPacket payload is not a FungibleTokenPacketData: %s", err.Error()))
+		logger.Debug(fmt.Sprintf("PFM:OnReceive:No Inter-chain Swap Packet: %s", err.Error()))
 		return im.app.OnRecvPacket(ctx, packet, relayer)
 	}
-	logger.Debug("packetForwardMiddleware OnRecvPacket",
+	logger.Debug("PFM:OnReceive:",
 		"sequence", packet.Sequence,
 		"src-channel", packet.SourceChannel, "src-port", packet.SourcePort,
 		"dst-channel", packet.DestinationChannel, "dst-port", packet.DestinationPort,
 		"memo", data.Memo,
 	)
 
-	data.Memo = []byte("eyJmb3J3YXJkIjp7InBvcnQiOiJ3YXNtLnNpZGUxemZ3OTMwY3N4MGs1cXpmMzV2bmRhdWx3YWRhNHdhM3B3dGc1aHk4cm1ubngzNXdkeWhzc3Bsejl0eiIsImNoYW5uZWwiOiJjaGFubmVsLTUifX0=")
+	if data.Memo == nil {
+		logger.Debug("PacketForward:OnReceive:No Memo")
+		return im.app.OnRecvPacket(ctx, packet, relayer)
+	}
 	memoBytes, err := base64.StdEncoding.DecodeString(string(data.Memo))
 	if err != nil {
 		// handle error: invalid base64 string
-		logger.Error("error decoding memo from base64", "error", err)
+		logger.Error("PacketForward:OnReceive: Error decoding memo from base64", "error", err)
 		return newErrorAcknowledgement(fmt.Errorf("error decoding memo from base64: %w", err))
 	}
 
-	// d := make(map[string]interface{})
-	// err = json.Unmarshal([]byte(memoBytes), &d)
-	// if err != nil || d["forward"] == nil {
-	// 	// not a packet that should be forwarded
-	// 	logger.Debug("packetForwardMiddleware OnRecvPacket forward metadata does not exist")
-	// 	return newErrorAcknowledgement(fmt.Errorf("error decoding memo from base64: %w", err))
-	// 	//return im.app.OnRecvPacket(ctx, packet, relayer)
-	// }
 	m := &types.PacketMetadata{}
 	err = json.Unmarshal(memoBytes, m)
 	if err != nil {
-		logger.Error("packetForwardMiddleware OnRecvPacket error parsing forward metadata", "error", err)
+		logger.Error("PacketForward:OnReceive: Error parsing forward metadata", "error", err)
 		return newErrorAcknowledgement(fmt.Errorf("error parsing forward metadata: %w", err))
 	}
 
 	metadata := m.Forward
 	if err := metadata.Validate(); err != nil {
-		logger.Error("packetForwardMiddleware OnRecvPacket forward metadata is invalid", "error", err)
+		logger.Error("PacketForward:OnReceive: Forward metadata is invalid", "error", err)
 		return newErrorAcknowledgement(err)
 	}
 
@@ -224,7 +219,7 @@ func (im IBCMiddleware) OnRecvPacket(
 	}
 	err = im.keeper.ForwardPacket(ctx, nil, packet, data, metadata, retries, timeout, []metrics.Label{})
 	if err != nil {
-		logger.Error("packetForwardMiddleware OnRecvPacket error forwarding packet", "error", err)
+		logger.Error("PacketForward:OnReceive: Error forwarding packet", "error", err)
 		return newErrorAcknowledgement(err)
 	}
 
