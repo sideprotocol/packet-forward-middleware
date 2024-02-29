@@ -206,7 +206,7 @@ func (im IBCMiddleware) OnRecvPacket(
 	metadata := m.Forward
 	if err := metadata.Validate(); err != nil {
 		logger.Error("packetForwardMiddleware OnRecvPacket forward metadata is invalid", "error", err)
-		//return im.app.OnRecvPacket(ctx, packet, relayer)
+		return im.app.OnRecvPacket(ctx, packet, relayer)
 		return newErrorAcknowledgement(err)
 	}
 
