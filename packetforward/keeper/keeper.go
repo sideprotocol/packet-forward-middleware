@@ -12,7 +12,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
-	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
@@ -150,75 +149,75 @@ func (k *Keeper) ForwardPacket(
 	labels []metrics.Label,
 ) error {
 	var err error
-	memo := []byte("")
-	// set memo for next transfer with next from this transfer.
-	if metadata.Next != nil {
-		memoBz, err := json.Marshal(metadata.Next)
-		if err != nil {
-			k.Logger(ctx).Error("packetForwardMiddleware error marshaling next as JSON",
-				"error", err,
-			)
-			return errorsmod.Wrapf(sdkerrors.ErrJSONMarshal, err.Error())
-		}
-		memo = memoBz
-	}
+	// memo := []byte("")
+	// // set memo for next transfer with next from this transfer.
+	// if metadata.Next != nil {
+	// 	memoBz, err := json.Marshal(metadata.Next)
+	// 	if err != nil {
+	// 		k.Logger(ctx).Error("packetForwardMiddleware error marshaling next as JSON",
+	// 			"error", err,
+	// 		)
+	// 		return errorsmod.Wrapf(sdkerrors.ErrJSONMarshal, err.Error())
+	// 	}
+	// 	memo = memoBz
+	// }
 
 	_, chanCap, err := k.channelKeeper.LookupModuleByChannel(ctx, metadata.Port, metadata.Channel)
 	if err != nil {
 		return errorsmod.Wrapf(sdkerrors.ErrJSONMarshal, err.Error())
 	}
-	seq, err := k.SendPacket(ctx, chanCap, metadata.Port, metadata.Channel, DefaultTransferPacketTimeoutHeight, uint64(ctx.BlockTime().UnixNano())+uint64(timeout.Nanoseconds()), srcPacket.Data)
+	_, err = k.SendPacket(ctx, chanCap, metadata.Port, metadata.Channel, DefaultTransferPacketTimeoutHeight, uint64(ctx.BlockTime().UnixNano())+uint64(timeout.Nanoseconds()), srcPacket.Data)
 	if err != nil {
 		return errorsmod.Wrapf(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 
-	// Update memo
-	data.Memo = memo
-	newData, err := json.Marshal(data)
-	srcPacket.Data = newData
+	// // Update memo
+	// data.Memo = memo
+	// newData, err := json.Marshal(data)
+	// srcPacket.Data = newData
 
-	k.Logger(ctx).Debug("packetForwardMiddleware ForwardTransferPacket",
-		"port", metadata.Port, "channel", metadata.Channel,
-	)
+	// k.Logger(ctx).Debug("packetForwardMiddleware ForwardTransferPacket",
+	// 	"port", metadata.Port, "channel", metadata.Channel,
+	// )
 
-	if err != nil {
-		k.Logger(ctx).Error("packetForwardMiddleware ForwardTransferPacket error",
-			"port", metadata.Port, "channel", metadata.Channel,
-			"error", err,
-		)
-		return errorsmod.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
-	}
+	// if err != nil {
+	// 	k.Logger(ctx).Error("packetForwardMiddleware ForwardTransferPacket error",
+	// 		"port", metadata.Port, "channel", metadata.Channel,
+	// 		"error", err,
+	// 	)
+	// 	return errorsmod.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
+	// }
 
-	// Store the following information in keeper:
-	// key - information about forwarded packet: src_channel (parsedReceiver.Channel), src_port (parsedReceiver.Port), sequence
-	// value - information about original packet for refunding if necessary: retries, srcPacketSender, srcPacket.DestinationChannel, srcPacket.DestinationPort
+	// // Store the following information in keeper:
+	// // key - information about forwarded packet: src_channel (parsedReceiver.Channel), src_port (parsedReceiver.Port), sequence
+	// // value - information about original packet for refunding if necessary: retries, srcPacketSender, srcPacket.DestinationChannel, srcPacket.DestinationPort
 
-	if multihopsPacket == nil {
-		multihopsPacket = &types.MultiHopsPacket{
-			PacketData:             srcPacket.Data,
-			PacketSrcPortId:        srcPacket.SourcePort,
-			PacketSrcChannelId:     srcPacket.SourceChannel,
-			PacketTimeoutTimestamp: srcPacket.TimeoutTimestamp,
-			PacketTimeoutHeight:    srcPacket.TimeoutHeight.String(),
-			RetriesRemaining:       int32(maxRetries),
-			Timeout:                uint64(timeout.Nanoseconds()),
-		}
-	} else {
-		multihopsPacket.RetriesRemaining--
-	}
+	// if multihopsPacket == nil {
+	// 	multihopsPacket = &types.MultiHopsPacket{
+	// 		PacketData:             srcPacket.Data,
+	// 		PacketSrcPortId:        srcPacket.SourcePort,
+	// 		PacketSrcChannelId:     srcPacket.SourceChannel,
+	// 		PacketTimeoutTimestamp: srcPacket.TimeoutTimestamp,
+	// 		PacketTimeoutHeight:    srcPacket.TimeoutHeight.String(),
+	// 		RetriesRemaining:       int32(maxRetries),
+	// 		Timeout:                uint64(timeout.Nanoseconds()),
+	// 	}
+	// } else {
+	// 	multihopsPacket.RetriesRemaining--
+	// }
 
-	key := types.RefundPacketKey(metadata.Channel, metadata.Port, seq)
-	store := ctx.KVStore(k.storeKey)
-	bz := k.cdc.MustMarshal(multihopsPacket)
-	store.Set(key, bz)
+	// key := types.RefundPacketKey(metadata.Channel, metadata.Port, seq)
+	// store := ctx.KVStore(k.storeKey)
+	// bz := k.cdc.MustMarshal(multihopsPacket)
+	// store.Set(key, bz)
 
-	defer func() {
-		telemetry.IncrCounterWithLabels(
-			[]string{"ibc", types.ModuleName, "send"},
-			1,
-			labels,
-		)
-	}()
+	// defer func() {
+	// 	telemetry.IncrCounterWithLabels(
+	// 		[]string{"ibc", types.ModuleName, "send"},
+	// 		1,
+	// 		labels,
+	// 	)
+	// }()
 	return nil
 }
 
