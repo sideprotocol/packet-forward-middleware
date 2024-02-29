@@ -34,7 +34,6 @@ func (m *ForwardMetadata) Validate() error {
 	if err := host.ChannelIdentifierValidator(m.Channel); err != nil {
 		return fmt.Errorf("failed to validate metadata: %w", err)
 	}
-
 	return nil
 }
 
