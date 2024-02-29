@@ -184,7 +184,8 @@ func (im IBCMiddleware) OnRecvPacket(
 	if err != nil {
 		// handle error: invalid base64 string
 		logger.Error("error decoding memo from base64", "error", err)
-		return newErrorAcknowledgement(fmt.Errorf("error decoding memo from base64: %w", err))
+		return im.app.OnRecvPacket(ctx, packet, relayer)
+		//return newErrorAcknowledgement(fmt.Errorf("error decoding memo from base64: %w", err))
 	}
 
 	// d := make(map[string]interface{})
