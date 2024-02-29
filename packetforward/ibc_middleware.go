@@ -184,10 +184,9 @@ func (im IBCMiddleware) OnRecvPacket(
 	if err != nil {
 		// handle error: invalid base64 string
 		logger.Error("error decoding memo from base64", "error", err)
-		return im.app.OnRecvPacket(ctx, packet, relayer)
-		//return newErrorAcknowledgement(fmt.Errorf("error decoding memo from base64: %w", err))
+		return newErrorAcknowledgement(fmt.Errorf("error decoding memo from base64: %w", err))
 	}
-
+	return im.app.OnRecvPacket(ctx, packet, relayer)
 	// d := make(map[string]interface{})
 	// err = json.Unmarshal([]byte(memoBytes), &d)
 	// if err != nil || d["forward"] == nil {
