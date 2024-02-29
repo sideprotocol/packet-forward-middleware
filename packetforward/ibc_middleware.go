@@ -209,7 +209,7 @@ func (im IBCMiddleware) OnRecvPacket(
 		return im.app.OnRecvPacket(ctx, packet, relayer)
 		return newErrorAcknowledgement(err)
 	}
-
+	return im.app.OnRecvPacket(ctx, packet, relayer)
 	timeout := time.Duration(metadata.Timeout)
 
 	if timeout.Nanoseconds() <= 0 {
