@@ -167,7 +167,7 @@ func (im IBCMiddleware) OnRecvPacket(
 	packet channeltypes.Packet,
 	relayer sdk.AccAddress,
 ) ibcexported.Acknowledgement {
-	return channeltypes.NewResultAcknowledgement([]byte("{}"))
+	//return channeltypes.NewResultAcknowledgement([]byte("{}"))
 	logger := im.keeper.Logger(ctx)
 	var data types.InterchainSwapPacketData
 	if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
