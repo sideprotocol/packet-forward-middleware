@@ -22,7 +22,7 @@ enum InterchainMessageType {
 // Message equivalent to Go's InterchainSwapPacketData struct
 message InterchainSwapPacketData {
     InterchainMessageType type = 1;
-    bytes data = 2;
-    bytes stateChange = 3;
+    bytes data = 2; // Binary in Rust is similar to bytes in Protobuf
+    bytes state_change = 3; // Optional in Rust, non-optional in Protobuf but can be empty
     bytes memo = 4;
 }
