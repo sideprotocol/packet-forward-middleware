@@ -167,7 +167,6 @@ func (k *Keeper) ForwardPacket(
 	if err != nil {
 		return errorsmod.Wrapf(sdkerrors.ErrJSONMarshal, err.Error())
 	}
-	return nil
 
 	// Send the packet using the channel keeper
 	seq, err := k.SendPacket(ctx, chanCap, metadata.Port, metadata.Channel, DefaultTransferPacketTimeoutHeight, uint64(ctx.BlockTime().UnixNano())+uint64(timeout.Nanoseconds()), srcPacket.Data)

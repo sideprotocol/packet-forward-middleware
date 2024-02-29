@@ -167,6 +167,7 @@ func (im IBCMiddleware) OnRecvPacket(
 	packet channeltypes.Packet,
 	relayer sdk.AccAddress,
 ) ibcexported.Acknowledgement {
+	return channeltypes.NewResultAcknowledgement([]byte("{}"))
 	logger := im.keeper.Logger(ctx)
 	var data types.InterchainSwapPacketData
 	if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
@@ -224,7 +225,6 @@ func (im IBCMiddleware) OnRecvPacket(
 	err = im.keeper.ForwardPacket(ctx, nil, packet, data, metadata, retries, timeout, []metrics.Label{})
 	if err != nil {
 		logger.Error("packetForwardMiddleware OnRecvPacket error forwarding packet", "error", err)
-		return im.app.OnRecvPacket(ctx, packet, relayer)
 		return newErrorAcknowledgement(err)
 	}
 
