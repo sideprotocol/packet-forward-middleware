@@ -171,11 +171,8 @@ func (im IBCMiddleware) OnRecvPacket(
 	var data types.InterchainSwapPacketData
 	if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
 		logger.Debug(fmt.Sprintf("packetForwardMiddleware OnRecvPacket payload is not a FungibleTokenPacketData: %s", err.Error()))
-		return newErrorAcknowledgement(fmt.Errorf("error decoding memo from base64: %w", err))
-		//return im.app.OnRecvPacket(ctx, packet, relayer)
+		return im.app.OnRecvPacket(ctx, packet, relayer)
 	}
-	return im.app.OnRecvPacket(ctx, packet, relayer)
-
 	logger.Debug("packetForwardMiddleware OnRecvPacket",
 		"sequence", packet.Sequence,
 		"src-channel", packet.SourceChannel, "src-port", packet.SourcePort,
@@ -187,7 +184,8 @@ func (im IBCMiddleware) OnRecvPacket(
 	if err != nil {
 		// handle error: invalid base64 string
 		logger.Error("error decoding memo from base64", "error", err)
-		return newErrorAcknowledgement(fmt.Errorf("error decoding memo from base64: %w", err))
+		return im.app.OnRecvPacket(ctx, packet, relayer)
+		//return newErrorAcknowledgement(fmt.Errorf("error decoding memo from base64: %w", err))
 	}
 
 	d := make(map[string]interface{})
