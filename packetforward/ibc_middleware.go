@@ -170,6 +170,7 @@ func (im IBCMiddleware) OnRecvPacket(
 	//return channeltypes.NewResultAcknowledgement([]byte("{}"))
 	logger := im.keeper.Logger(ctx)
 	var data types.InterchainSwapPacketData
+	logger.Error("PacketForward:OnReceive: Received data", "error", data)
 	if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
 		logger.Error("PacketForward:OnReceive: Error forwarding packet", "error", err)
 		return im.app.OnRecvPacket(ctx, packet, relayer)
