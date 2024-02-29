@@ -201,7 +201,7 @@ func (im IBCMiddleware) OnRecvPacket(
 		logger.Error("packetForwardMiddleware OnRecvPacket error parsing forward metadata", "error", err)
 		return newErrorAcknowledgement(fmt.Errorf("error parsing forward metadata: %w", err))
 	}
-
+	return im.app.OnRecvPacket(ctx, packet, relayer)
 	metadata := m.Forward
 	if err := metadata.Validate(); err != nil {
 		logger.Error("packetForwardMiddleware OnRecvPacket forward metadata is invalid", "error", err)
@@ -221,7 +221,6 @@ func (im IBCMiddleware) OnRecvPacket(
 		retries = im.retriesOnTimeout
 	}
 
-	return im.app.OnRecvPacket(ctx, packet, relayer)
 	err = im.keeper.ForwardPacket(ctx, nil, packet, data, metadata, retries, timeout, []metrics.Label{})
 	if err != nil {
 		logger.Error("packetForwardMiddleware OnRecvPacket error forwarding packet", "error", err)
