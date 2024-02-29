@@ -1,7 +1,6 @@
 package packetforward
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -180,31 +179,30 @@ func (im IBCMiddleware) OnRecvPacket(
 		"memo", data.Memo,
 	)
 
-	memoBytes, err := base64.StdEncoding.DecodeString(string(data.Memo))
-	if err != nil {
-		// handle error: invalid base64 string
-		logger.Error("error decoding memo from base64", "error", err)
-		return im.app.OnRecvPacket(ctx, packet, relayer)
-		//return newErrorAcknowledgement(fmt.Errorf("error decoding memo from base64: %w", err))
-	}
+	// memoBytes, err := base64.StdEncoding.DecodeString(string(data.Memo))
+	// if err != nil {
+	// 	// handle error: invalid base64 string
+	// 	logger.Error("error decoding memo from base64", "error", err)
+	// 	return im.app.OnRecvPacket(ctx, packet, relayer)
+	// 	//return newErrorAcknowledgement(fmt.Errorf("error decoding memo from base64: %w", err))
+	// }
 
-	d := make(map[string]interface{})
-	err = json.Unmarshal([]byte(memoBytes), &d)
-	if err != nil || d["forward"] == nil {
-		// not a packet that should be forwarded
-		logger.Debug("packetForwardMiddleware OnRecvPacket forward metadata does not exist")
-		return newErrorAcknowledgement(fmt.Errorf("error decoding memo from base64: %w", err))
-		//return im.app.OnRecvPacket(ctx, packet, relayer)
-	}
+	// d := make(map[string]interface{})
+	// err = json.Unmarshal([]byte(memoBytes), &d)
+	// if err != nil || d["forward"] == nil {
+	// 	// not a packet that should be forwarded
+	// 	logger.Debug("packetForwardMiddleware OnRecvPacket forward metadata does not exist")
+	// 	return newErrorAcknowledgement(fmt.Errorf("error decoding memo from base64: %w", err))
+	// 	//return im.app.OnRecvPacket(ctx, packet, relayer)
+	// }
 	m := &types.PacketMetadata{}
-	err = json.Unmarshal([]byte(data.Memo), m)
+	err := json.Unmarshal([]byte(data.Memo), m)
 	if err != nil {
 		logger.Error("packetForwardMiddleware OnRecvPacket error parsing forward metadata", "error", err)
 		return newErrorAcknowledgement(fmt.Errorf("error parsing forward metadata: %w", err))
 	}
 
 	metadata := m.Forward
-
 	if err := metadata.Validate(); err != nil {
 		logger.Error("packetForwardMiddleware OnRecvPacket forward metadata is invalid", "error", err)
 		return newErrorAcknowledgement(err)
