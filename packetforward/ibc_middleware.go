@@ -184,8 +184,7 @@ func (im IBCMiddleware) OnRecvPacket(
 	if err != nil {
 		// handle error: invalid base64 string
 		logger.Error("error decoding memo from base64", "error", err)
-		return im.app.OnRecvPacket(ctx, packet, relayer)
-		//return newErrorAcknowledgement(fmt.Errorf("error decoding memo from base64: %w", err))
+		return newErrorAcknowledgement(fmt.Errorf("error decoding memo from base64: %w", err))
 	}
 
 	// d := make(map[string]interface{})
@@ -207,7 +206,8 @@ func (im IBCMiddleware) OnRecvPacket(
 	metadata := m.Forward
 	if err := metadata.Validate(); err != nil {
 		logger.Error("packetForwardMiddleware OnRecvPacket forward metadata is invalid", "error", err)
-		return newErrorAcknowledgement(err)
+		return im.app.OnRecvPacket(ctx, packet, relayer)
+		//return newErrorAcknowledgement(err)
 	}
 
 	timeout := time.Duration(metadata.Timeout)
@@ -227,7 +227,7 @@ func (im IBCMiddleware) OnRecvPacket(
 	if err != nil {
 		logger.Error("packetForwardMiddleware OnRecvPacket error forwarding packet", "error", err)
 		//return im.app.OnRecvPacket(ctx, packet, relayer)
-		return newErrorAcknowledgement(err)
+		//return newErrorAcknowledgement(err)
 	}
 
 	// returning nil ack will prevent WriteAcknowledgement from occurring for forwarded packet.
