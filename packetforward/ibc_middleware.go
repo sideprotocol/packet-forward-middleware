@@ -182,7 +182,7 @@ func (im IBCMiddleware) OnRecvPacket(
 	)
 
 	if data.Memo == nil {
-		logger.Error("PacketForward:OnReceive:", "error", "No Memo")
+		logger.Error("PacketForward:OnReceive:", "error", data)
 		return im.app.OnRecvPacket(ctx, packet, relayer)
 	}
 	memoBytes, err := base64.StdEncoding.DecodeString(string(data.Memo))
