@@ -60,19 +60,19 @@ func interchainSwapMsg(t *testing.T, sender string, receiver string, metadata an
 	rawMemo, err := json.Marshal(memo)
 	require.NoError(t, err)
 
-	interchainSwapPacket := types.InterchainSwapPacketData{
-		Type:        types.InterchainMessageType_LeftSwap,
-		Data:        []byte("test"),
-		StateChange: nil,
-		Memo:        rawMemo,
+	interchainSwapPacket := types.WasmInterchainSwapPacketData{
+		Type:        "test",
+		Data:        "test",
+		StateChange: "test",
+		Memo:        string(rawMemo),
 	}
 	if metadata != nil {
-		if mStr, ok := metadata.([]byte); ok {
+		if mStr, ok := metadata.(string); ok {
 			interchainSwapPacket.Memo = mStr
 		} else {
 			memo, err := json.Marshal(metadata)
 			require.NoError(t, err)
-			interchainSwapPacket.Memo = memo
+			interchainSwapPacket.Memo = string(memo)
 		}
 	}
 
@@ -578,8 +578,8 @@ func TestOnRecvPacket_ForwardMultihopJSONNext(t *testing.T) {
 	memo1, err := json.Marshal(nextMetadata)
 	require.NoError(t, err)
 
-	msgTransfer1 := types.InterchainSwapPacketData{
-		Memo: memo1,
+	msgTransfer1 := types.WasmInterchainSwapPacketData{
+		Memo: string(memo1),
 	}
 	// transfertypes.NewMsgTransfer(
 	// 	port,
@@ -593,8 +593,8 @@ func TestOnRecvPacket_ForwardMultihopJSONNext(t *testing.T) {
 	// )
 
 	// no memo on final forward
-	msgTransfer2 := types.InterchainSwapPacketData{
-		Memo: []byte(""),
+	msgTransfer2 := types.WasmInterchainSwapPacketData{
+		Memo: "",
 	}
 	_ = msgTransfer2
 	// transfertypes.NewMsgTransfer(

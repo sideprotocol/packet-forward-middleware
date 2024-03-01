@@ -169,9 +169,9 @@ func (im IBCMiddleware) OnRecvPacket(
 ) ibcexported.Acknowledgement {
 	//return channeltypes.NewResultAcknowledgement([]byte("{}"))
 	logger := im.keeper.Logger(ctx)
-	var data types.InterchainSwapPacketData
 	logger.Error("PacketForward:OnReceive: Received data", "error", packet.GetData())
-	if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
+	var data types.WasmInterchainSwapPacketData
+	if err := json.Unmarshal(packet.GetData(), &data); err != nil {
 		logger.Error("PacketForward:OnReceive: Error forwarding packet", "error", err)
 		return im.app.OnRecvPacket(ctx, packet, relayer)
 	}
@@ -182,15 +182,16 @@ func (im IBCMiddleware) OnRecvPacket(
 		"memo", data.Memo,
 	)
 
-	if data.Memo == nil {
-		logger.Error("PacketForward:OnReceive:", "error", data)
-		return im.app.OnRecvPacket(ctx, packet, relayer)
-	}
 	memoBytes, err := base64.StdEncoding.DecodeString(string(data.Memo))
 	if err != nil {
 		// handle error: invalid base64 string
 		logger.Error("PacketForward:OnReceive:", "error", err)
 		return newErrorAcknowledgement(fmt.Errorf("error decoding memo from base64: %w", err))
+	}
+
+	if memoBytes == nil {
+		logger.Error("PacketForward:OnReceive:", "error", data)
+		return im.app.OnRecvPacket(ctx, packet, relayer)
 	}
 
 	m := &types.PacketMetadata{}
@@ -277,8 +278,8 @@ func (im IBCMiddleware) OnAcknowledgementPacket(
 	acknowledgement []byte,
 	relayer sdk.AccAddress,
 ) error {
-	var data types.InterchainSwapPacketData
-	if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
+	var data types.WasmInterchainSwapPacketData
+	if err := json.Unmarshal(packet.GetData(), &data); err != nil {
 		im.keeper.Logger(ctx).Error("packetForwardMiddleware error parsing packet data from ack packet",
 			"sequence", packet.Sequence,
 			"src-channel", packet.SourceChannel, "src-port", packet.SourcePort,
@@ -310,8 +311,8 @@ func (im IBCMiddleware) OnAcknowledgementPacket(
 
 // OnTimeoutPacket implements the IBCModule interface.
 func (im IBCMiddleware) OnTimeoutPacket(ctx sdk.Context, packet channeltypes.Packet, relayer sdk.AccAddress) error {
-	var data types.InterchainSwapPacketData
-	if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
+	var data types.WasmInterchainSwapPacketData
+	if err := json.Unmarshal(packet.GetData(), &data); err != nil {
 		im.keeper.Logger(ctx).Error("packetForwardMiddleware error parsing packet data from timeout packet",
 			"sequence", packet.Sequence,
 			"src-channel", packet.SourceChannel, "src-port", packet.SourcePort,

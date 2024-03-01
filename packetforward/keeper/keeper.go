@@ -3,6 +3,7 @@ package keeper
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -97,7 +98,7 @@ func (k *Keeper) Logger(ctx sdk.Context) log.Logger {
 func (k *Keeper) WriteAcknowledgementForForwardedPacket(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
-	data types.InterchainSwapPacketData,
+	data types.WasmInterchainSwapPacketData,
 	multihopsPacket *types.MultiHopsPacket,
 	ack channeltypes.Acknowledgement,
 ) error {
@@ -143,7 +144,7 @@ func (k *Keeper) ForwardPacket(
 	ctx sdk.Context,
 	multihopsPacket *types.MultiHopsPacket,
 	srcPacket channeltypes.Packet,
-	data types.InterchainSwapPacketData,
+	data types.WasmInterchainSwapPacketData,
 	metadata *types.ForwardMetadata,
 	maxRetries uint8,
 	timeout time.Duration,
@@ -175,7 +176,7 @@ func (k *Keeper) ForwardPacket(
 	}
 
 	// Update memo
-	data.Memo = memo
+	data.Memo = string(memo)
 	newData, err := json.Marshal(data)
 	srcPacket.Data = newData
 
@@ -258,7 +259,7 @@ func (k *Keeper) TimeoutShouldRetry(
 func (k *Keeper) RetryTimeout(
 	ctx sdk.Context,
 	channel, port string,
-	data types.InterchainSwapPacketData,
+	data types.WasmInterchainSwapPacketData,
 	multihopsPacket *types.MultiHopsPacket,
 ) error {
 	// send transfer again
@@ -267,7 +268,7 @@ func (k *Keeper) RetryTimeout(
 		Port:    port,
 	}
 
-	if data.Memo != nil {
+	if strings.TrimSpace(data.Memo) != "" {
 		metadata.Next = &types.JSONObject{}
 		if err := json.Unmarshal([]byte(data.Memo), metadata.Next); err != nil {
 			return fmt.Errorf("error unmarshaling memo json: %w", err)
