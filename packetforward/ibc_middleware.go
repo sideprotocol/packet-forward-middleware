@@ -169,7 +169,7 @@ func (im IBCMiddleware) OnRecvPacket(
 ) ibcexported.Acknowledgement {
 	//return channeltypes.NewResultAcknowledgement([]byte("{}"))
 	logger := im.keeper.Logger(ctx)
-	logger.Error("PacketForward:OnReceive: Received data", "error", packet.GetData())
+	logger.Info("PacketForward:OnReceive: Received data", "error", packet.GetData())
 	var data types.WasmInterchainSwapPacketData
 	if err := json.Unmarshal(packet.GetData(), &data); err != nil {
 		logger.Error("PacketForward:OnReceive: Error forwarding packet", "error", err)
