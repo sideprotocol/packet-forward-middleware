@@ -182,6 +182,11 @@ func (im IBCMiddleware) OnRecvPacket(
 		"memo", data.Memo,
 	)
 
+	if strings.TrimSpace(data.Memo) == "" {
+		logger.Error("PacketForward:OnReceive:", "non existing memo")
+		return im.app.OnRecvPacket(ctx, packet, relayer)
+	}
+
 	memoBytes, err := base64.StdEncoding.DecodeString(string(data.Memo))
 	if err != nil {
 		// handle error: invalid base64 string
